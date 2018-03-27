@@ -15,10 +15,11 @@ int word_compare=0;
 int directory=0;
 void clear (void)
 {
-  while ( getchar() != '\n' );
+	while ( getchar() != '\n' );
 }
 
 void verify_options();
+int find_complete_word(char *str);
 void sigint_handler(int signo)
 {
 	char input;
@@ -87,6 +88,7 @@ void verify_options(){
 	char buf[BUF_LENGTH];
 	char cout[BUF_LENGTH*40];
 	char line_n[10];
+	char aux_buf[BUF_LENGTH];
 	int totalLines=0;
 	if ((file=fopen(filename,"r"))==NULL){
 		printf("Non existing file \n");
@@ -94,22 +96,19 @@ void verify_options(){
 	}
 	int i =1;
 	while(fgets(buf, BUF_LENGTH, file)){
+
 		if (line_number==1){
 			sprintf(line_n, "%d:",i);
 
 		}
 		if (word_compare==1){
-			if (letter_type==0){
-				if (strstr(buf,pattern)!=NULL){
-					strcat(cout, line_n);
-					strcat(cout,buf);
-					totalLines++;
-				}
-			}
-			else if (strcasestr(buf,pattern)!=NULL){
-				strcat(cout, line_n);
-				strcat(cout,buf);
-				totalLines++;
+			strcpy(aux_buf,buf);
+			int j=find_complete_word(buf);
+
+			if (j==1){
+			strcat(cout, line_n);
+			strcat(cout,aux_buf);
+			totalLines++;
 			}
 		}
 		else{
@@ -130,7 +129,6 @@ void verify_options(){
 			}
 		}
 		i++;
-		sleep(10);
 	}
 	if (total_lines==1)
 	{
@@ -142,6 +140,16 @@ void verify_options(){
 		exit(0);
 	}
 	printf("%s\n",cout);
+}
 
-
+int find_complete_word(char *str){
+	const char s[2]=" ";
+	char *token;
+	token=strtok(str,s);
+	while(token !=NULL){
+		if (strcmp(token,pattern)==0)
+			return 1;
+		token = strtok(NULL, s);
+	}
+	return 0;
 }
