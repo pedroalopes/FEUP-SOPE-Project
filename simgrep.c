@@ -3,9 +3,12 @@
 #include <string.h>
 #include <strings.h>
 #include <signal.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <time.h>
 #define BUF_LENGTH 256
 #define _GNU_SOURCE
-char *filename;
 char *pattern;
 int letter_type=0;
 int file_name=0;
@@ -13,12 +16,15 @@ int line_number=0;
 int total_lines=0;
 int word_compare=0;
 int directory=0;
+clock_t begin=0;
+clock_t end;
 void clear (void)
 {
 	while ( getchar() != '\n' );
 }
 
-void verify_options();
+void verify_options(char *filename);
+void find_in_directory(char *directory);
 int find_complete_word(char *str);
 void sigint_handler(int signo)
 {
@@ -42,6 +48,12 @@ int main(int argc, char *argv[]){
 	action.sa_handler = sigint_handler;
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
+	begin=clock();
+
+	FILE *f=fopen("logfile.txt","ab+");
+
+	fclose(f);
+	putenv("LOGFILENAME=logfile.txt");
 	if (sigaction(SIGINT,&action,NULL) < 0)
 	{
 		fprintf(stderr,"Unable to install SIGINT handler\n");
@@ -50,11 +62,10 @@ int main(int argc, char *argv[]){
 	if (argc < 3) {
 		printf("Wrong number of arguments! Usage: %s [options] pattern [file/dir]\n", argv[0]);
 	}
-
-	filename=argv[argc-2];
-	pattern= argv[argc-3];
+	char *filename=argv[argc-1];
+	pattern= argv[argc-2];
 	int i;
-	for (i=1;i<argc-2; i++){
+	for (i=1;i<argc-1; i++){
 		if (strcmp(argv[i],"-i")==0){
 			letter_type=1;
 			continue;
@@ -79,21 +90,36 @@ int main(int argc, char *argv[]){
 			directory=1;
 			continue;
 		}
-		verify_options();
+
+		if (directory==1){
+			find_in_directory(filename);
+		}
+
+		else verify_options(filename);
 	}
 }
 
-void verify_options(){
+void verify_options(char *filename){
 	FILE *file;
+	FILE *logFile;
 	char buf[BUF_LENGTH];
 	char cout[BUF_LENGTH*40];
 	char line_n[10];
 	char aux_buf[BUF_LENGTH];
+	char log_entry[200];
+
 	int totalLines=0;
+	printf("\nFILE:: %s\n", filename);
 	if ((file=fopen(filename,"r"))==NULL){
 		printf("Non existing file \n");
 		exit(0);
 	}
+	logFile=fopen(getenv("LOGFILENAME"),"a");
+	sprintf(log_entry,"%d  %d opened %s\n",clock(),getpid(),filename);
+
+	fprintf(logFile,"%s\n",log_entry);
+	fclose(logFile);
+
 	int i =1;
 	while(fgets(buf, BUF_LENGTH, file)){
 
@@ -106,9 +132,9 @@ void verify_options(){
 			int j=find_complete_word(buf);
 
 			if (j==1){
-			strcat(cout, line_n);
-			strcat(cout,aux_buf);
-			totalLines++;
+				strcat(cout, line_n);
+				strcat(cout,aux_buf);
+				totalLines++;
 			}
 		}
 		else{
@@ -140,6 +166,8 @@ void verify_options(){
 		exit(0);
 	}
 	printf("%s\n",cout);
+	cout[0]='\0';
+	fclose(file);
 }
 
 int find_complete_word(char *str){
@@ -152,4 +180,55 @@ int find_complete_word(char *str){
 		token = strtok(NULL, s);
 	}
 	return 0;
+}
+void find_in_directory(char *directory){
+
+	int i =0;
+
+	int pid, stat;
+	pid = fork();
+
+	if(pid > 0) {
+		wait(&stat);
+	} else if( pid == 0) {
+		struct dirent *de;
+
+		DIR *dr= opendir(directory);
+		struct stat stat_buf;
+		char file[200];
+
+		if (dr==NULL)
+		{
+			printf("Could not open current directory\n");
+			exit(0);
+		}
+
+		while(((de=readdir(dr))!=NULL)){
+			sprintf(file, "%s/%s",directory,de->d_name);
+
+			if (lstat(file, &stat_buf)==-1){
+				perror("Lstat error \n");
+				exit(0);
+			}
+
+			if (S_ISREG(stat_buf.st_mode)){
+				verify_options(file);
+			}
+
+			else if (S_ISDIR(stat_buf.st_mode)){
+				if (strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0 ){
+
+					verify_options(file);
+					find_in_directory(de->d_name);
+				}
+
+			}
+			else verify_options(de->d_name);
+
+
+		}
+		closedir(dr);
+		exit(0);
+	}
+
 }
