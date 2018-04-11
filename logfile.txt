@@ -1,8 +1,283 @@
-380  6651 opened dir/file.txt
+991 - 9561 - COMMAND 
+./simgrep -r snow dir 
 
-555  6651 opened dir/file2.txt
+1209 - 9561 - created new process for directory dir
 
-333  6662 opened dir/file.txt
+118 - 9562 - created new process for directory dir
 
-527  6662 opened dir/file2.txt
+222 - 9562 - opened file dir/file.txt
+
+249 - 9562 - closed file dir/file.txt
+
+265 - 9562 - opened file dir/file2.txt
+
+277 - 9562 - closed file dir/file2.txt
+
+289 - 9562 - opened file dir/snowWhite.txt
+
+303 - 9562 - closed file dir/snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+947 - 9578 - COMMAND 
+./simgrep -r Snow dir 
+
+1109 - 9578 - created new process for directory dir
+
+129 - 9579 - created new process for directory dir
+
+262 - 9579 - opened file dir/file.txt
+
+322 - 9579 - closed file dir/file.txt
+
+370 - 9579 - opened file dir/file2.txt
+
+406 - 9579 - closed file dir/file2.txt
+
+441 - 9579 - opened file dir/snowWhite.txt
+
+478 - 9579 - closed file dir/snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1149 - 3847 - COMMAND 
+./simgrep -r mirror dir 
+
+1447 - 3847 - created new process for directory dir
+
+133 - 3848 - created new process for directory dir
+
+258 - 3848 - opened file dir/file.txt
+
+339 - 3848 - closed file dir/file.txt
+
+672 - 3848 - opened file dir/file2.txt
+
+734 - 3848 - closed file dir/file2.txt
+
+807 - 3848 - opened file dir/snowWhite.txt
+
+1036 - 3848 - closed file dir/snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1143 - 3857 - COMMAND 
+./simgrep -r -n mirror dir 
+
+1442 - 3857 - created new process for directory dir
+
+148 - 3858 - created new process for directory dir
+
+315 - 3858 - opened file dir/file.txt
+
+436 - 3858 - closed file dir/file.txt
+
+515 - 3858 - opened file dir/file2.txt
+
+603 - 3858 - closed file dir/file2.txt
+
+683 - 3858 - opened file dir/snowWhite.txt
+
+992 - 3858 - closed file dir/snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+368 - 3863 - COMMAND 
+./simgrep -r -n -l mirror dir 
+
+451 - 3863 - created new process for directory dir
+
+42 - 3864 - created new process for directory dir
+
+105 - 3864 - opened file dir/file.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1132 - 3868 - COMMAND 
+./simgrep -r -n -i mirror dir 
+
+1278 - 3868 - created new process for directory dir
+
+56 - 3869 - created new process for directory dir
+
+122 - 3869 - opened file dir/file.txt
+
+176 - 3869 - closed file dir/file.txt
+
+217 - 3869 - opened file dir/file2.txt
+
+246 - 3869 - closed file dir/file2.txt
+
+276 - 3869 - opened file dir/snowWhite.txt
+
+417 - 3869 - closed file dir/snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+441 - 3873 - COMMAND 
+./simgrep -r -n -c mirror dir 
+
+540 - 3873 - created new process for directory dir
+
+57 - 3874 - created new process for directory dir
+
+124 - 3874 - opened file dir/file.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+758 - 3881 - COMMAND 
+./simgrep -c mirror dir 
+
+886 - 3881 - opened file dir
+
+373 - 3885 - COMMAND 
+./simgrep -w mirror dir 
+
+425 - 3885 - opened file dir
+
+452 - 3885 - closed file dir
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1151 - 3935 - COMMAND 
+./simgrep -w mirror dir 
+
+1321 - 3935 - opened file dir
+
+1402 - 3935 - closed file dir
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1136 - 3938 - COMMAND 
+./simgrep -c mirror dir 
+
+1304 - 3938 - opened file dir
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1178 - 4356 - COMMAND 
+./simgrep -c chair file.txt 
+
+1360 - 4356 - opened file file.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1116 - 4379 - COMMAND 
+./simgrep -c mirror snowWhite.txt 
+
+1338 - 4379 - opened file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1133 - 4443 - COMMAND 
+./simgrep -w a snowWhite.txt 
+
+1335 - 4443 - opened file snowWhite.txt
+
+1983 - 4443 - closed file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1041 - 4446 - COMMAND 
+./simgrep -w as snowWhite.txt 
+
+1223 - 4446 - opened file snowWhite.txt
+
+1866 - 4446 - closed file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1127 - 4452 - COMMAND 
+./simgrep -w rr snowWhite.txt 
+
+1326 - 4452 - opened file snowWhite.txt
+
+1911 - 4452 - closed file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1121 - 4455 - COMMAND 
+./simgrep -w love snowWhite.txt 
+
+1317 - 4455 - opened file snowWhite.txt
+
+1913 - 4455 - closed file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1207 - 4458 - COMMAND 
+./simgrep -w lovely snowWhite.txt 
+
+1390 - 4458 - opened file snowWhite.txt
+
+1995 - 4458 - closed file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1175 - 4461 - COMMAND 
+./simgrep -i -w lovely snowWhite.txt 
+
+1383 - 4461 - opened file snowWhite.txt
+
+2011 - 4461 - closed file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1133 - 4466 - COMMAND 
+./simgrep -n -w lovely snowWhite.txt 
+
+1309 - 4466 - opened file snowWhite.txt
+
+1992 - 4466 - closed file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
+
+1057 - 4468 - COMMAND 
+./simgrep -n -w love snowWhite.txt 
+
+1153 - 4468 - opened file snowWhite.txt
+
+1341 - 4468 - closed file snowWhite.txt
+
+--------------Finished command execution--------------
+
+--------------------------***-------------------------
 
