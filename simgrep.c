@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include<sys/wait.h>
 #include <time.h>
 #define BUF_LENGTH 256
 #define _GNU_SOURCE
@@ -28,13 +29,26 @@ void find_in_directory(char *directory);
 int find_complete_word(char *str);
 void sigint_handler(int signo)
 {
-	char input;
+	char input, log_entry[200];
+
+	FILE *logFile=fopen(getenv("LOGFILENAME"),"a");
+	sprintf(log_entry,"%ld - %d - received SIGINT signal from user\n",clock(),getpid());
+
+	fprintf(logFile,"%s\n",log_entry);
+	fclose(logFile);
+
 	printf("Are you sure that you want to exit?\n");
 
 	input=getchar();
 	clear();
 
 	if (input=='Y' || input=='y'){
+		FILE *logFile=fopen(getenv("LOGFILENAME"),"a");
+		sprintf(log_entry,"%ld - %d - User forced temination! program terminated . . .\n",clock(),getpid());
+		sprintf(log_entry,"--------------------------***-------------------------\n");
+
+		fprintf(logFile,"%s\n",log_entry);
+		fclose(logFile);
 		exit(0);
 	}
 	else if (input=='N' || input =='n')
@@ -44,16 +58,28 @@ void sigint_handler(int signo)
 }
 
 int main(int argc, char *argv[]){
+
 	struct sigaction action;
 	action.sa_handler = sigint_handler;
 	sigemptyset(&action.sa_mask);
 	action.sa_flags = 0;
+	char log_entry[200], log_entry2[200];
 	begin=clock();
 
-	FILE *f=fopen("logfile.txt","ab+");
+	FILE *f=fopen("logfile.txt","a");
+	sprintf(log_entry,"%ld - %d - COMMAND ",clock(),getpid());
+	fprintf(f,"%s\n",log_entry);
 
+	for(int t = 0; t < argc; t++) {
+		sprintf(log_entry,"%s ", argv[t]);
+		fprintf(f,"%s",log_entry);
+	}
+
+	fprintf(f,"\n\n");
 	fclose(f);
+
 	putenv("LOGFILENAME=logfile.txt");
+
 	if (sigaction(SIGINT,&action,NULL) < 0)
 	{
 		fprintf(stderr,"Unable to install SIGINT handler\n");
@@ -62,9 +88,11 @@ int main(int argc, char *argv[]){
 	if (argc < 3) {
 		printf("Wrong number of arguments! Usage: %s [options] pattern [file/dir]\n", argv[0]);
 	}
+
 	char *filename=argv[argc-1];
 	pattern= argv[argc-2];
 	int i;
+
 	for (i=1;i<argc-1; i++){
 		if (strcmp(argv[i],"-i")==0){
 			letter_type=1;
@@ -97,6 +125,16 @@ int main(int argc, char *argv[]){
 
 		else verify_options(filename);
 	}
+
+	f=fopen("logfile.txt","a");
+	sprintf(log_entry2,"--------------Finished command execution--------------\n");
+	fprintf(f,"%s\n",log_entry2);
+	sprintf(log_entry2,"--------------------------***-------------------------\n");
+	fprintf(f,"%s\n",log_entry2);
+	fclose(f);
+
+	exit(0);
+
 }
 
 void verify_options(char *filename){
@@ -115,7 +153,7 @@ void verify_options(char *filename){
 		exit(0);
 	}
 	logFile=fopen(getenv("LOGFILENAME"),"a");
-	sprintf(log_entry,"%d  %d opened %s\n",clock(),getpid(),filename);
+	sprintf(log_entry,"%ld - %d - opened file %s\n",clock(),getpid(),filename);
 
 	fprintf(logFile,"%s\n",log_entry);
 	fclose(logFile);
@@ -159,15 +197,21 @@ void verify_options(char *filename){
 	if (total_lines==1)
 	{
 		printf("Total lines=%d\n",totalLines);
-		exit(0);
+		return;
 	}
 	if (file_name==1){
 		printf("FILE: %s\n", filename);
-		exit(0);
+		return;
 	}
 	printf("%s\n",cout);
 	cout[0]='\0';
 	fclose(file);
+
+	logFile=fopen(getenv("LOGFILENAME"),"a");
+	sprintf(log_entry,"%ld - %d - closed file %s\n",clock(),getpid(),filename);
+
+	fprintf(logFile,"%s\n",log_entry);
+	fclose(logFile);
 }
 
 int find_complete_word(char *str){
@@ -183,10 +227,16 @@ int find_complete_word(char *str){
 }
 void find_in_directory(char *directory){
 
-	int i =0;
+	char log_entry[200];
 
 	int pid, stat;
 	pid = fork();
+
+	FILE *logFile=fopen(getenv("LOGFILENAME"),"a");
+	sprintf(log_entry,"%ld - %d - created new process for directory %s\n",clock(),getpid(),directory);
+
+	fprintf(logFile,"%s\n",log_entry);
+	fclose(logFile);
 
 	if(pid > 0) {
 		wait(&stat);
@@ -228,7 +278,7 @@ void find_in_directory(char *directory){
 
 		}
 		closedir(dr);
-		exit(0);
+		return;
 	}
 
 }
