@@ -1,3 +1,0 @@
-chair abcd
-abcd chair
-aaaa Chair
