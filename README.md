@@ -9,7 +9,8 @@ A estrutura do programa é deixada ao critério do projetista, mas exige-se o cu
 requisitos, também apresentados mais à frente
 
 
-# PROJECT 2 - Simulação de um sistema de reserva de lugares: Implementação de uma arquitetura cliente/servidor baseada em FIFOs
+# PROJECT 2 - Simulação de um sistema de reserva de lugares
+Implementação de uma arquitetura cliente/servidor baseada em FIFOs
 Pretende-se desenvolver uma aplicação cliente/servidor que permita efetuar reservas de lugares para um
 evento. A simulação será feita através de processos a correr num único computador, sendo a comunicação
 entre clientes e servidor feita através de pipes com nome (FIFOs).
