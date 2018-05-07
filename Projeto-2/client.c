@@ -1,38 +1,74 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+#include <time.h>
+int fifo_leitura;
+int fifo_escrita;
+int time_out;
 
- char argv2[20];
-char argv3[20];
+typedef struct {
+	int id; //numero do pedido
+	int num_seats;
+	char seats[10];
+
+} Request;
+
+void create_fifo_ans();
+void open_fifo_requests();
 int main(int argc, char *argv[]) {
-  printf("** Running process %d (PGID %d) **\n", getpid(), getpgrp());
+	Request *request;
+	malloc(sizeof(Request));
+	printf("** Running process %d (PGID %d) **\n", getpid(), getpgrp());
+	if (argc == 4)
+		printf("ARGS: %s | %s | %s\n", argv[1], argv[2], argv[3]);
 
-  if (argc == 4)
-    printf("ARGS: %s | %s | %s\n", argv[1], argv[2], argv[3]);
+	request->id=getpid();
+	request->num_seats=atoi(argv[2]);
+	strcpy(request->seats,argv[3]);
 
-  strcpy(argv3, argv[3]);
-  strcpy(argv2, argv[2]);
-  create_fifos();
-
-  sleep(10);
-
-  return 0;
+	time_out = atoi(argv[1]);
+	//create_fifo_ans();
+	open_fifo_requests();
+	//sleep(10);
+	return 0;
 }
-
-void create_fifos()
+void create_fifo_ans()
 {
-	int fds[2];
-	char str[20];
-	sprintf(str, "/Projeto-2/ans%d", getpid());
-	char *ans=str;
-	char *req= "Projeto-2/requests";
-	mkfifo(ans,0666);
-	fds[0]= open(ans,O_RDONLY);
-	fds[1]= open(req, O_WRONLY);
-	char client_info[200];
-	sprintf(client_info, "%d;%s;%s;", getpid(),argv2, argv3);
-	write (fds[1],&client_info, sizeof(client_info));
-	perror("Could not write\n");
+	time_t start_t;
+	start_t=time(0);
+
+	char dir[20];
+	sprintf(dir, "/tmp/ans%d", getpid());
+	if (mkfifo(dir, 0660) != 0) {
+		if (errno == EEXIST)
+			printf("FIFO WITH %d pid already exists\n",getpid());
+		else
+			printf("CAN'T CREATE FIFO WITH %d pid \n", getpid());
+	}
+
+	while ((fifo_leitura = open(dir, O_RDONLY| O_NONBLOCK)) == -1) {
+		if ((double)(time(0)-start_t)>=time_out){
+			printf("END OF TIME\n");
+			return;
+		}
+		printf("CLIENT: Waiting for SERVER'...\n");
+	}
+	return;
 }
+void open_fifo_requests(){
+	if ((fifo_escrita= open("tmp/requests",O_WRONLY|O_NONBLOCK))==-1)
+		printf("CLIENT: ERROR WHEN FIFO REQUESTS WAS OPENED\n");
+
+	else{
+		write (fifo_escrita,request, sizeof(Request));
+	}
+
+
+}
+
+

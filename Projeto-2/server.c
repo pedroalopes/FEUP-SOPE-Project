@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <strings.h>
 #include <signal.h>
 #include <dirent.h>
@@ -9,19 +8,43 @@
 #include <pthread.h>
 #include <time.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
 #define MAX_SEATS 9999
-
+#define MAX_CLI_SEATS 5
 typedef struct {
 	int num_room_seats;
 	int num_ticket_offices;
 	int open_time;
 } Info;
+
+typedef struct {
+	int id; //numero do pedido
+	int num_seats;
+	char seats[10];
+
+} Request;
 Info *info;
 pthread_t threads[20];
-void * process_request(void *arg);
+int fifo_escrita;
+int fifo_leitura;
+int pid_ans;
+int seats[MAX_SEATS];
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cvar = PTHREAD_COND_INITIALIZER;
+Request * buf;
+void process_request(Request* req);
 void create_ticket_offices();
+void *check_buffer(void *nr);
 int main(int argc , char * argv[]){
+	Request* req= malloc(sizeof(Request));
+	buf=malloc(sizeof(Request));
+	req->id=0;
+	req->num_seats=1;
+	strcpy(req->seats,"10");
+
 
 	if (argc != 4){
 		printf("Wrong number of arguments! Usage: %s [num_room_seats] [num_ticket_offices] [open_time] \n", argv[0]);
@@ -32,32 +55,71 @@ int main(int argc , char * argv[]){
 	info->num_room_seats=atoi(argv[1]);
 	info->num_ticket_offices=atoi(argv[2]);
 	info->open_time=atoi(argv[3]);
-	//create_ticket_offices();
-	char* buffer;
-	char * requests = "/Projeto-2/requests";
-	mkfifo(requests, 0666);
+	create_ticket_offices();
+	sleep(2);
+	buf=req;
+	pthread_cond_signal(&cvar);
 	free(info);
 
 
 }
+void create_fifo_requests(){
+
+		if (mkfifo("/tmp/requests", 0660) != 0) {
+				if (errno == EEXIST)
+					printf("SERVER: FIFO REQUESTS already exists\n");
+				else
+					printf("SERVER: CAN'T CREATE FIFO REQUESTS\n");
+			}
+
+			while ((fifo_leitura = open("tmp/requests", O_RDONLY| O_NONBLOCK)) == -1) {
+				printf("SERVER: Waiting for REQUESTS'...\n");
+			}
+			return;
+
+}
+void open_requests(){
+	int i ;
+	char dir[30];
+	Request *request=malloc(sizeof(Request));
+	read(fifo_leitura,request,sizeof(Request));
+	sprintf(dir, "tmp/ans%d",request->id);
+	fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK);
+	if(request->num_seats>MAX_CLI_SEATS){
+		i =-1;
+		write(fifo_escrita, &i,sizeof(int));
+	}
+
+}
+
 void create_ticket_offices(){
 	int i;
-
 	for (i = 0; i< info->num_ticket_offices;i++){
-		pthread_create(&threads[i],NULL,process_request, &info->open_time);
+		pthread_create(&threads[i],NULL,check_buffer,"1");
+		printf("Created thread\n");
 		//pthread_join(threads[i],NULL);
-		printf("Created thread %d\n",i);
+
 	}
 }
 
-void * process_request(void * arg){
+void process_request(Request* req){
 
-	clock_t start = clock();
-	double seconds_since_start= (clock()-start)/CLOCKS_PER_SEC;
-	while (seconds_since_start < info->open_time){
-		seconds_since_start= (clock()-start)/CLOCKS_PER_SEC;
-
-	}
+	printf("process\n");
 
 	//pthread_exit(NULL);
+}
+
+void *check_buffer(void *nr){
+	while(1){
+		pthread_mutex_lock(&mut);
+		while (1){
+			printf("check buffer \n");
+			pthread_cond_wait(&cvar,&mut);
+			printf("dentro while\n");
+
+		}
+		process_request(buf);
+		pthread_mutex_unlock(&mut);
+	}
+
 }
