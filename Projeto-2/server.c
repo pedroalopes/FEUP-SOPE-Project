@@ -26,12 +26,17 @@ typedef struct {
 	char seats[10];
 
 } Request;
+
+typedef struct {
+	int isFree;
+	int clientId;
+}Seat;
 Info *info;
 pthread_t threads[20];
 int fifo_escrita;
 int fifo_leitura;
 int pid_ans;
-int seats[MAX_SEATS];
+Seat seats[MAX_SEATS];
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cvar = PTHREAD_COND_INITIALIZER;
 Request * buf;
@@ -39,7 +44,7 @@ void process_request(Request* req);
 void create_ticket_offices();
 void *check_buffer(void *nr);
 int main(int argc , char * argv[]){
-	Request* req= malloc(sizeof(Request));
+	/*Request* req= malloc(sizeof(Request));
 	buf=malloc(sizeof(Request));
 	req->id=0;
 	req->num_seats=1;
@@ -59,23 +64,23 @@ int main(int argc , char * argv[]){
 	sleep(2);
 	buf=req;
 	pthread_cond_signal(&cvar);
-	free(info);
+	free(info);*/
 
 
 }
 void create_fifo_requests(){
 
-		if (mkfifo("/tmp/requests", 0660) != 0) {
-				if (errno == EEXIST)
-					printf("SERVER: FIFO REQUESTS already exists\n");
-				else
-					printf("SERVER: CAN'T CREATE FIFO REQUESTS\n");
-			}
+	if (mkfifo("/tmp/requests", 0660) != 0) {
+		if (errno == EEXIST)
+			printf("SERVER: FIFO REQUESTS already exists\n");
+		else
+			printf("SERVER: CAN'T CREATE FIFO REQUESTS\n");
+	}
 
-			while ((fifo_leitura = open("tmp/requests", O_RDONLY| O_NONBLOCK)) == -1) {
-				printf("SERVER: Waiting for REQUESTS'...\n");
-			}
-			return;
+	while ((fifo_leitura = open("tmp/requests", O_RDONLY| O_NONBLOCK)) == -1) {
+		printf("SERVER: Waiting for REQUESTS'...\n");
+	}
+	return;
 
 }
 void open_requests(){
@@ -83,13 +88,63 @@ void open_requests(){
 	char dir[30];
 	Request *request=malloc(sizeof(Request));
 	read(fifo_leitura,request,sizeof(Request));
+
 	sprintf(dir, "tmp/ans%d",request->id);
 	fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK);
 	if(request->num_seats>MAX_CLI_SEATS){
 		i =-1;
 		write(fifo_escrita, &i,sizeof(int));
+		exit(0);
 	}
-
+	char * split = strtok (request->seats," ");
+	int count_seats =0;
+	int seat;
+	while (split != NULL)
+	{
+		seat=atoi(pch);
+		if (seat>9999 || seat<0){
+			i =-3;
+			write(fifo_escrita,&i,sizeof(int));
+			exit(0);
+		}
+		if (seats[seat].isFree!=0){
+			i =-5;
+			write(fifo_escrita,&i,sizeof(int));
+			return;
+		}
+		count_seats++;
+		split= strtok (NULL, " ");
+	}
+	if (count_seats>MAX_CLI_SEATS || count_seats < request->num_seats){
+		i =-2;
+		write(fifo_escrita,&i,sizeof(int));
+		return ;
+	}
+	int j;
+	int count=0;
+	for (j =0;j<MAX_SEATS;j++){
+		if (seats[j].isFree==1)
+		{
+			count++;
+		}
+	}
+	if (count==MAX_SEATS){
+		i=-6;
+		write(fifo_escrita,&i,sizeof(int));
+		return;
+	}
+	char [30] success;
+	sprintf(success,"%d ", request->num_seats);
+	char * split = strtok (request->seats," ");
+	count_seats=0;
+	while (split != NULL && count_seats<request->num_seats)
+	{
+		seat=atoi(pch);
+		sprintf(sucess, "%d ",seat);
+		count_seats++;
+		split= strtok (NULL, " ");
+	}
+	write(fifo_escrita, sucess, 30);
 }
 
 void create_ticket_offices(){
@@ -101,7 +156,37 @@ void create_ticket_offices(){
 
 	}
 }
+int isSeatFree(Seat *seat, int seatNum){
+	if (seatNum<0 || seatNum>MAX_SEATS)
+		return -1;
+	if (seats[seatNum].isFree==0)
+		return seatNum;
+	else return -2;
 
+}
+void bookSeat(Seat *seats, int seatNum, int clientId){
+	if (seatNum<0 || seatNum>MAX_SEATS)
+		return;
+	if (seats[seatNum].isFree==0)
+	{
+		seats[seatNum].clientId=clientId;
+		seats[seatNum].isFree=1;
+		return;
+	}
+
+
+}
+void freeSeat(Seat *seats, int seatNum){
+	if (seatNum<0 || seatNum>MAX_SEATS)
+		return;
+	if (seats[seatNum].isFree==1)
+		{
+
+		seats[seatNum].clientId=-1;
+		seats[seatNum].isFree=0;
+		}
+
+}
 void process_request(Request* req){
 
 	printf("process\n");
