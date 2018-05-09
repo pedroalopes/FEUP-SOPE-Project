@@ -14,6 +14,9 @@
 
 #define MAX_SEATS 9999
 #define MAX_CLI_SEATS 5
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cvar = PTHREAD_COND_INITIALIZER;
+
 typedef struct {
 	int num_room_seats;
 	int num_ticket_offices;
@@ -30,21 +33,20 @@ typedef struct {
 typedef struct {
 	int isFree;
 	int clientId;
-}Seat;
+} Seat;
+
 Info *info;
 pthread_t threads[20];
 int fifo_escrita;
 int fifo_leitura;
 int pid_ans;
 Seat seats[MAX_SEATS];
-pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cvar = PTHREAD_COND_INITIALIZER;
 Request * buf;
 void process_request(Request* req);
 void create_ticket_offices();
 void *check_buffer(void *nr);
 int main(int argc , char * argv[]){
-	/*Request* req= malloc(sizeof(Request));
+	Request* req= malloc(sizeof(Request));
 	buf=malloc(sizeof(Request));
 	req->id=0;
 	req->num_seats=1;
@@ -61,10 +63,7 @@ int main(int argc , char * argv[]){
 	info->num_ticket_offices=atoi(argv[2]);
 	info->open_time=atoi(argv[3]);
 	create_ticket_offices();
-	sleep(2);
-	buf=req;
-	pthread_cond_signal(&cvar);
-	free(info);*/
+	free(info);
 
 
 }
@@ -84,9 +83,10 @@ void create_fifo_requests(){
 
 }
 void open_requests(){
+
 	int i ;
 	char dir[30];
-	Request *request=malloc(sizeof(Request));
+	Request *request = malloc(sizeof(Request));
 	read(fifo_leitura,request,sizeof(Request));
 
 	sprintf(dir, "tmp/ans%d",request->id);
@@ -101,7 +101,7 @@ void open_requests(){
 	int seat;
 	while (split != NULL)
 	{
-		seat=atoi(pch);
+		seat=atoi(split);
 		if (seat>9999 || seat<0){
 			i =-3;
 			write(fifo_escrita,&i,sizeof(int));
@@ -133,27 +133,32 @@ void open_requests(){
 		write(fifo_escrita,&i,sizeof(int));
 		return;
 	}
-	char [30] success;
+	char success[30];
 	sprintf(success,"%d ", request->num_seats);
-	char * split = strtok (request->seats," ");
+	split = strtok (request->seats," ");
 	count_seats=0;
 	while (split != NULL && count_seats<request->num_seats)
 	{
-		seat=atoi(pch);
-		sprintf(sucess, "%d ",seat);
+		seat=atoi(split);
+		sprintf(success, "%d ",seat);
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
-	write(fifo_escrita, sucess, 30);
+	write(fifo_escrita, success, 30);
 }
 
 void create_ticket_offices(){
 	int i;
+
 	for (i = 0; i< info->num_ticket_offices;i++){
 		pthread_create(&threads[i],NULL,check_buffer,"1");
 		printf("Created thread\n");
-		//pthread_join(threads[i],NULL);
+	}
 
+
+
+	for (i = 0; i< info->num_ticket_offices;i++){
+		pthread_join(threads[i],NULL);
 	}
 }
 int isSeatFree(Seat *seat, int seatNum){
@@ -195,7 +200,7 @@ void process_request(Request* req){
 }
 
 void *check_buffer(void *nr){
-	while(1){
+	/*while(1){
 		pthread_mutex_lock(&mut);
 		while (1){
 			printf("check buffer \n");
@@ -205,6 +210,7 @@ void *check_buffer(void *nr){
 		}
 		process_request(buf);
 		pthread_mutex_unlock(&mut);
-	}
+	}*/
 
+	printf("Done\n");
 }
