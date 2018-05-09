@@ -18,11 +18,12 @@ typedef struct {
 
 } Request;
 
+Request *request;
+
 void create_fifo_ans();
 void open_fifo_requests();
 int main(int argc, char *argv[]) {
-	Request *request;
-	malloc(sizeof(Request));
+	request = malloc(sizeof(Request));
 	printf("** Running process %d (PGID %d) **\n", getpid(), getpgrp());
 	if (argc == 4)
 		printf("ARGS: %s | %s | %s\n", argv[1], argv[2], argv[3]);
@@ -32,7 +33,7 @@ int main(int argc, char *argv[]) {
 	strcpy(request->seats,argv[3]);
 
 	time_out = atoi(argv[1]);
-	//create_fifo_ans();
+	create_fifo_ans();
 	open_fifo_requests();
 	//sleep(10);
 	return 0;
@@ -70,5 +71,3 @@ void open_fifo_requests(){
 
 
 }
-
-

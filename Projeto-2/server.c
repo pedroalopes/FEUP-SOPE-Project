@@ -14,6 +14,8 @@
 
 #define MAX_SEATS 9999
 #define MAX_CLI_SEATS 5
+#define NEW_REQUEST 1
+#define TAKEN_REQUEST 0
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cvar = PTHREAD_COND_INITIALIZER;
 
@@ -40,6 +42,10 @@ pthread_t threads[20];
 int fifo_escrita;
 int fifo_leitura;
 int pid_ans;
+time_t start_t;
+
+int new_request_flag = TAKEN_REQUEST;
+
 Seat seats[MAX_SEATS];
 Request * buf;
 void process_request(Request* req);
@@ -62,10 +68,22 @@ int main(int argc , char * argv[]){
 	info->num_room_seats=atoi(argv[1]);
 	info->num_ticket_offices=atoi(argv[2]);
 	info->open_time=atoi(argv[3]);
+	start_t = time(0);
 	create_ticket_offices();
+	buf = req;
+	new_request_flag = NEW_REQUEST;
+	pthread_cond_signal(&cvar);
+
+	int i;
+		for (i = 0; i< info->num_ticket_offices;i++){
+			pthread_join(threads[i],NULL);
+		}
 	free(info);
+	free(req);
+	free(buf);
+	pthread_cond_destroy(&cvar);
 
-
+	return 0;
 }
 void create_fifo_requests(){
 
@@ -156,10 +174,6 @@ void create_ticket_offices(){
 	}
 
 
-
-	for (i = 0; i< info->num_ticket_offices;i++){
-		pthread_join(threads[i],NULL);
-	}
 }
 int isSeatFree(Seat *seat, int seatNum){
 	if (seatNum<0 || seatNum>MAX_SEATS)
@@ -196,21 +210,21 @@ void process_request(Request* req){
 
 	printf("process\n");
 
-	//pthread_exit(NULL);
 }
 
 void *check_buffer(void *nr){
-	/*while(1){
+
+	while(time(0) - start_t < info->open_time){
 		pthread_mutex_lock(&mut);
-		while (1){
-			printf("check buffer \n");
+		while (new_request_flag == TAKEN_REQUEST){
 			pthread_cond_wait(&cvar,&mut);
-			printf("dentro while\n");
 
 		}
-		process_request(buf);
-		pthread_mutex_unlock(&mut);
-	}*/
 
-	printf("Done\n");
+		new_request_flag = TAKEN_REQUEST;
+		open_requests();
+		pthread_mutex_unlock(&mut);
+	}
+	pthread_exit(NULL);
+
 }
