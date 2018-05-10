@@ -48,10 +48,13 @@ int new_request_flag = TAKEN_REQUEST;
 
 Seat seats[MAX_SEATS];
 Request * buf;
-void process_request(Request* req);
+
 void create_ticket_offices();
 void *check_buffer(void *nr);
+void create_fifo_requests();
+
 int main(int argc , char * argv[]){
+
 	Request* req= malloc(sizeof(Request));
 	buf=malloc(sizeof(Request));
 	req->id=0;
@@ -75,9 +78,20 @@ int main(int argc , char * argv[]){
 	pthread_cond_signal(&cvar);
 
 	int i;
-		for (i = 0; i< info->num_ticket_offices;i++){
-			pthread_join(threads[i],NULL);
-		}
+	for (i = 0; i< info->num_ticket_offices;i++){
+		pthread_join(threads[i],NULL);
+	}
+
+	create_fifo_requests();
+
+	while(time(0) - start_t < info->open_time) {
+		read(fifo_leitura, buf, sizeof(Request));
+	}
+
+	for (i = 0; i< info->num_ticket_offices;i++){
+		pthread_cancel(threads[i]);
+	}
+
 	free(info);
 	free(req);
 	free(buf);
@@ -206,19 +220,13 @@ void freeSeat(Seat *seats, int seatNum){
 		}
 
 }
-void process_request(Request* req){
-
-	printf("process\n");
-
-}
 
 void *check_buffer(void *nr){
 
-	while(time(0) - start_t < info->open_time){
+	while(1){
 		pthread_mutex_lock(&mut);
 		while (new_request_flag == TAKEN_REQUEST){
 			pthread_cond_wait(&cvar,&mut);
-
 		}
 
 		new_request_flag = TAKEN_REQUEST;

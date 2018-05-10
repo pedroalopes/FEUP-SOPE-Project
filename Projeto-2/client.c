@@ -23,6 +23,7 @@ Request *request;
 void create_fifo_ans();
 void open_fifo_requests();
 int main(int argc, char *argv[]) {
+
 	request = malloc(sizeof(Request));
 	printf("** Running process %d (PGID %d) **\n", getpid(), getpgrp());
 	if (argc == 4)
@@ -35,6 +36,7 @@ int main(int argc, char *argv[]) {
 	time_out = atoi(argv[1]);
 	create_fifo_ans();
 	open_fifo_requests();
+
 	//sleep(10);
 	return 0;
 }
@@ -42,23 +44,35 @@ void create_fifo_ans()
 {
 	time_t start_t;
 	start_t=time(0);
+	char dir[20], success[30];
 
-	char dir[20];
 	sprintf(dir, "/tmp/ans%d", getpid());
+
 	if (mkfifo(dir, 0660) != 0) {
-		if (errno == EEXIST)
+		if (errno == EEXIST){
 			printf("FIFO WITH %d pid already exists\n",getpid());
-		else
+			return;
+		}
+		else {
 			printf("CAN'T CREATE FIFO WITH %d pid \n", getpid());
+		}
 	}
 
-	while ((fifo_leitura = open(dir, O_RDONLY| O_NONBLOCK)) == -1) {
+	if((fifo_leitura = open(dir, O_RDONLY| O_NONBLOCK)) == -1) {
+		printf("Could not open FIFO\n");
+		return;
+	}
+
+	while (read(fifo_leitura, success, sizeof(success)) == -1) {
 		if ((double)(time(0)-start_t)>=time_out){
 			printf("END OF TIME\n");
 			return;
 		}
 		printf("CLIENT: Waiting for SERVER'...\n");
 	}
+
+	printf("%s\n", success);
+
 	return;
 }
 void open_fifo_requests(){
