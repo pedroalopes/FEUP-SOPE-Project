@@ -52,13 +52,16 @@ Request * buf;
 void create_ticket_offices();
 void *check_buffer(void *nr);
 void create_fifo_requests();
-
+void open_requests();
+int send_answer(char* answer, char* dir);
+Request* req;
 int main(int argc , char * argv[]){
 
-	Request* req= malloc(sizeof(Request));
-	buf=malloc(sizeof(Request));
-	req->id=0;
-	req->num_seats=1;
+	req=malloc(sizeof(Request));
+
+	/*buf=malloc(sizeof(Request));
+	req=malloc(sizeof(Request));
+
 	strcpy(req->seats,"10");
 
 
@@ -96,19 +99,24 @@ int main(int argc , char * argv[]){
 	free(req);
 	free(buf);
 	pthread_cond_destroy(&cvar);
-
+*/
+	create_fifo_requests();
+	open_requests();
+	//close(fifo_leitura);
+	//unlink("requests");
 	return 0;
 }
 void create_fifo_requests(){
 
-	if (mkfifo("/tmp/requests", 0660) != 0) {
+	if (mkfifo("requests", 0660) != 0) {
 		if (errno == EEXIST)
 			printf("SERVER: FIFO REQUESTS already exists\n");
 		else
 			printf("SERVER: CAN'T CREATE FIFO REQUESTS\n");
 	}
 
-	while ((fifo_leitura = open("/tmp/requests", O_RDWR)) == -1) {
+
+	while ((fifo_leitura = open("requests", O_RDONLY)) == -1) {
 		printf("SERVER: Waiting for REQUESTS'...\n");
 	}
 	return;
@@ -117,18 +125,17 @@ void create_fifo_requests(){
 void open_requests(){
 
 	int i ;
-	char dir[30];
+	char dir[30], aux[30];
 	Request *request = malloc(sizeof(Request));
 	read(fifo_leitura,request,sizeof(Request));
+	strcpy(aux, request->seats);
 
-	sprintf(dir, "/tmp/ans%d",request->id);
-	fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK);
 	if(request->num_seats>MAX_CLI_SEATS){
 		i =-1;
 		write(fifo_escrita, &i,sizeof(int));
 		exit(0);
 	}
-	char * split = strtok (request->seats," ");
+	char * split = strtok (aux," ");
 	int count_seats =0;
 	int seat;
 	while (split != NULL)
@@ -166,18 +173,37 @@ void open_requests(){
 		return;
 	}
 	char success[30];
-	sprintf(success,"%d ", request->num_seats);
-	split = strtok (request->seats," ");
+	strcpy(aux, request->seats);
+	char finally[30];
+	sprintf(finally, "%d ", request->num_seats);
+	strcpy(success, finally);
+	split = strtok (aux," ");
 	count_seats=0;
 	while (split != NULL && count_seats<request->num_seats)
 	{
 		seat=atoi(split);
-		sprintf(success, "%d ",seat);
+		sprintf(finally, "%d ",seat);
+		strcat(success, finally);
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
-	printf("SERVER::%s\n", success);
-	write(fifo_escrita, success, 30);
+
+	sprintf(dir, "ans%d",request->id);
+
+	if(send_answer(success, dir) == 1){
+		printf("Could not send message\n");
+		return;
+	}
+}
+
+int send_answer(char* answer, char* dir) {
+
+	if((fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK)) == -1)
+		return 1;
+
+	write(fifo_escrita, answer, 30);
+	return 0;
+
 }
 
 void create_ticket_offices(){
