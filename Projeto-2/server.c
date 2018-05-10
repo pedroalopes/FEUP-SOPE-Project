@@ -99,7 +99,7 @@ int main(int argc , char * argv[]){
 	free(req);
 	free(buf);
 	pthread_cond_destroy(&cvar);
-*/
+	 */
 	create_fifo_requests();
 	open_requests();
 	//close(fifo_leitura);
@@ -125,14 +125,15 @@ void create_fifo_requests(){
 void open_requests(){
 
 	int i ;
-	char dir[30], aux[30];
+	char dir[30], aux[30],finally[30];
 	Request *request = malloc(sizeof(Request));
 	read(fifo_leitura,request,sizeof(Request));
 	strcpy(aux, request->seats);
 
 	if(request->num_seats>MAX_CLI_SEATS){
 		i =-1;
-		write(fifo_escrita, &i,sizeof(int));
+		sprintf(finally, "%d ",i);
+		write(fifo_escrita, finally,30);
 		exit(0);
 	}
 	char * split = strtok (aux," ");
@@ -143,12 +144,14 @@ void open_requests(){
 		seat=atoi(split);
 		if (seat>9999 || seat<0){
 			i =-3;
-			write(fifo_escrita,&i,sizeof(int));
+			sprintf(finally, "%d ",i);
+			write(fifo_escrita, finally,30);
 			exit(0);
 		}
 		if (seats[seat].isFree!=0){
 			i =-5;
-			write(fifo_escrita,&i,sizeof(int));
+			sprintf(finally, "%d ",i);
+			write(fifo_escrita, finally,30);
 			return;
 		}
 		count_seats++;
@@ -156,7 +159,8 @@ void open_requests(){
 	}
 	if (count_seats>MAX_CLI_SEATS || count_seats < request->num_seats){
 		i =-2;
-		write(fifo_escrita,&i,sizeof(int));
+		sprintf(finally, "%d ",i);
+		write(fifo_escrita, finally,30);
 		return ;
 	}
 	int j;
@@ -169,12 +173,13 @@ void open_requests(){
 	}
 	if (count==MAX_SEATS){
 		i=-6;
-		write(fifo_escrita,&i,sizeof(int));
+		sprintf(finally, "%d ",i);
+		write(fifo_escrita, finally,30);
 		return;
 	}
 	char success[30];
 	strcpy(aux, request->seats);
-	char finally[30];
+
 	sprintf(finally, "%d ", request->num_seats);
 	strcpy(success, finally);
 	split = strtok (aux," ");
@@ -240,11 +245,11 @@ void freeSeat(Seat *seats, int seatNum){
 	if (seatNum<0 || seatNum>MAX_SEATS)
 		return;
 	if (seats[seatNum].isFree==1)
-		{
+	{
 
 		seats[seatNum].clientId=-1;
 		seats[seatNum].isFree=0;
-		}
+	}
 
 }
 
