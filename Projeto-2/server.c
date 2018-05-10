@@ -108,7 +108,7 @@ void create_fifo_requests(){
 			printf("SERVER: CAN'T CREATE FIFO REQUESTS\n");
 	}
 
-	while ((fifo_leitura = open("tmp/requests", O_RDONLY| O_NONBLOCK)) == -1) {
+	while ((fifo_leitura = open("/tmp/requests", O_RDWR)) == -1) {
 		printf("SERVER: Waiting for REQUESTS'...\n");
 	}
 	return;
@@ -121,7 +121,7 @@ void open_requests(){
 	Request *request = malloc(sizeof(Request));
 	read(fifo_leitura,request,sizeof(Request));
 
-	sprintf(dir, "tmp/ans%d",request->id);
+	sprintf(dir, "/tmp/ans%d",request->id);
 	fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK);
 	if(request->num_seats>MAX_CLI_SEATS){
 		i =-1;
@@ -176,6 +176,7 @@ void open_requests(){
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
+	printf("SERVER::%s\n", success);
 	write(fifo_escrita, success, 30);
 }
 

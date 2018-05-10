@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
 
 	request = malloc(sizeof(Request));
 	printf("** Running process %d (PGID %d) **\n", getpid(), getpgrp());
+
 	if (argc == 4)
 		printf("ARGS: %s | %s | %s\n", argv[1], argv[2], argv[3]);
 
@@ -76,12 +77,12 @@ void create_fifo_ans()
 	return;
 }
 void open_fifo_requests(){
-	if ((fifo_escrita= open("tmp/requests",O_WRONLY|O_NONBLOCK))==-1)
+	while ((fifo_escrita= open("/tmp/requests",O_WRONLY)) == -1){
+		sleep(1);
 		printf("CLIENT: ERROR WHEN FIFO REQUESTS WAS OPENED\n");
-
-	else{
-		write (fifo_escrita,request, sizeof(Request));
 	}
 
-
+	/*else{
+		write (fifo_escrita,request, sizeof(Request));
+	}*/
 }

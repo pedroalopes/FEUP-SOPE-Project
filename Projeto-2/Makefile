@@ -1,3 +1,4 @@
+all: client server start
 
 client: client.c
 	gcc client.c -o client -lpthread -Wall
@@ -12,3 +13,4 @@ clean:
 	rm -f server
 	rm -f client
 	rm -f start
+	rm -f *.o
