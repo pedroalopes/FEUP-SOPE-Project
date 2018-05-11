@@ -7,9 +7,11 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <semaphore.h>
 int fifo_leitura;
 int fifo_escrita;
 int time_out;
+sem_t *new_client;
 
 typedef struct {
 	int id; //numero do pedido
@@ -44,10 +46,11 @@ int main(int argc, char *argv[]) {
 	strcpy(request->seats,argv[3]);
 
 	time_out = atoi(argv[1]);
+	new_client = sem_open("/new_client", O_CREAT);
+
 	open_fifo_requests();
 	create_fifo_ans(dir);
 
-	//sleep(10);
 	close(fifo_leitura);
 	unlink(dir);
 	return 0;
@@ -66,12 +69,11 @@ void create_fifo_ans(char* dir)
 			printf("CAN'T CREATE FIFO WITH %d pid \n", getpid());
 		}
 	}
-
 	while((fifo_leitura = open(dir, O_RDONLY)) == -1) {
 		printf("Could not open FIFO\n");
 	}
 
-
+	printf("before read\n");
 	read(fifo_leitura, answer, 30);
 
 	printf("%s\n", answer);
@@ -93,9 +95,10 @@ void open_fifo_requests(){
 		sleep(1);
 		printf("CLIENT: ERROR WHEN FIFO REQUESTS WAS OPENED\n");
 	}
-	printf("antes write\n");
-	write(fifo_escrita,request, sizeof(Request));
 
+	printf("before post\n");
+	sem_post(new_client);
+	write(fifo_escrita,request, sizeof(Request));
 	/*else{
 		write (fifo_escrita,request, sizeof(Request));
 	}*/
