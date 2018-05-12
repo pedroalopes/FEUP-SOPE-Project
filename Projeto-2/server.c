@@ -47,6 +47,9 @@ int pid_ans;
 time_t start_t;
 sem_t *new_client;
 
+
+FILE *f;
+
 int new_request_flag = TAKEN_REQUEST;
 
 Seat seats[MAX_SEATS];
@@ -62,6 +65,7 @@ Request* req;
 int main (int argc, char * argv[]) {
 
 	int i;
+	char toFile[40];
 	if (argc != 4){
 		printf("Wrong number of arguments! Usage: %s [num_room_seats] [num_ticket_offices] [open_time] \n", argv[0]);
 		exit(1);
@@ -74,6 +78,7 @@ int main (int argc, char * argv[]) {
 		printf("SERVER:: open_time must be a positive number\n");
 		exit(1);
 	}
+	f=fopen("slog.txt","ab+");
 
 	printf("SERVER::CREATED SERVER\n");
 
@@ -113,10 +118,17 @@ int main (int argc, char * argv[]) {
 	}
 
 	for (i = 0; i< info->num_ticket_offices;i++){
+
 		pthread_join(threads[i],NULL);
 	}
 
 	for (i = 0; i< info->num_ticket_offices;i++){
+		if (i<10){
+			sprintf(toFile, "0%d-CLOSE",i);
+		}
+		else
+			sprintf(toFile,"%d-CLOSE",i);
+		fprintf(f,toFile);
 		pthread_cancel(threads[i]);
 	}
 
@@ -151,15 +163,18 @@ void create_fifo_requests(){
 void open_requests(){
 
 	int i ;
-	char dir[30], aux[30],finally[30];
+	char dir[30], aux[30],finally[30],toFile[50];
 	Request *request = malloc(sizeof(Request));
 	strcpy(aux, buf->seats);
-
+	sprintf(toFile, "CL%d-%d:",buf->id,buf->num_seats);
+	strcat(toFile,buf->seats);
 	if(buf->num_seats>MAX_CLI_SEATS){
 		i =-1;
 		sprintf(finally, "%d ",i);
 		write(fifo_escrita, finally,30);
-		exit(0);
+		strcat(toFile,"-MAX");
+		fprintf(f,toFile);
+		return;
 	}
 	char * split = strtok (aux," ");
 	int count_seats =0;
@@ -170,13 +185,19 @@ void open_requests(){
 		if (seat>9999 || seat<0){
 			i =-3;
 			sprintf(finally, "%d ",i);
+
 			write(fifo_escrita, finally,30);
-			exit(0);
+			strcat(toFile,"-IID");
+			fprintf(f,toFile);
+
+			return;
 		}
 		if (seats[seat].isFree!=0){
 			i =-5;
 			sprintf(finally, "%d ",i);
 			write(fifo_escrita, finally,30);
+			strcat(toFile,"-NAV");
+			fprintf(f,toFile);
 			return;
 		}
 		count_seats++;
@@ -186,6 +207,8 @@ void open_requests(){
 		i =-2;
 		sprintf(finally, "%d ",i);
 		write(fifo_escrita, finally,30);
+		strcat(toFile,"-NST");
+		fprintf(f,toFile);
 		return ;
 	}
 	int j;
@@ -200,6 +223,8 @@ void open_requests(){
 		i=-6;
 		sprintf(finally, "%d ",i);
 		write(fifo_escrita, finally,30);
+		strcat(toFile,"-FUL");
+		fprintf(f,toFile);
 		return;
 	}
 	char success[30];
@@ -209,15 +234,20 @@ void open_requests(){
 	strcpy(success, finally);
 	split = strtok (aux," ");
 	count_seats=0;
+
+
 	while (split != NULL && count_seats<buf->num_seats)
 	{
 		seat=atoi(split);
+		seats[seat].isFree=1;
 		sprintf(finally, "%d ",seat);
 		strcat(success, finally);
+		strcat (toFile, success);
+
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
-
+	fprintf(f, toFile);
 	printf("before answer\n");
 	sprintf(dir, "ans%d",buf->id);
 	printf("%s\n", dir);
@@ -244,8 +274,14 @@ int send_answer(char* answer, char* dir) {
 
 void create_ticket_offices(){
 	int i;
-
+	char toFile[20];
 	for (i = 0; i< info->num_ticket_offices;i++){
+		if (i<10){
+			sprintf(toFile, "0%d-OPEN",i);
+		}
+		else
+			sprintf(toFile,"%d-OPEN",i);
+		fprintf(f,toFile);
 		pthread_create(&threads[i],NULL,check_buffer,"1");
 		printf("Created thread\n");
 	}
