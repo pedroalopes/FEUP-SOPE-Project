@@ -77,9 +77,11 @@ int main (int argc, char * argv[]) {
 
 
 	while(1) {
-		if(read(fifo_leitura, buf, sizeof(Request)) != -1) {
+		if(read(fifo_leitura, buf, sizeof(Request)) > 0) {
+			pthread_mutex_lock(&new_client);
 			new_request_flag = NEW_REQUEST;
 			pthread_cond_signal(&cvar);
+			pthread_mutex_unlock(&new_client);
 		}
 
 	}
@@ -96,6 +98,7 @@ int main (int argc, char * argv[]) {
 	free(info);
 	free(buf);
 	pthread_cond_destroy(&cvar);
+	pthread_mutex_destroy(%new_client);
 	close(fifo_leitura);
 	remove("requests");
 	return 0;
@@ -195,7 +198,7 @@ void open_requests(){
 
 int send_answer(char* answer, char* dir) {
 
-	sleep(2);
+	sleep(4);
 	if((fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK)) == -1)
 		return 1;
 
@@ -209,8 +212,8 @@ void create_ticket_offices(){
 	int i;
 
 	for (i = 0; i< info->num_ticket_offices;i++){
-		pthread_create(&threads[i],NULL,check_buffer,"1");
-		printf("Created thread\n");
+		pthread_create(&threads[i],NULL,check_buffer, (void *) &threads[i]);
+		printf("Created thread %lu\n", threads[i]);
 	}
 
 
@@ -247,15 +250,17 @@ void freeSeat(Seat *seats, int seatNum){
 
 }
 
-void *check_buffer(void *nr){
+void *check_buffer(void * nr){
 
 	while(1){
 		pthread_mutex_lock(&mut);
 
 		while (new_request_flag == TAKEN_REQUEST){
+			printf("wait:%lu\n", * (long unsigned int *) nr);
 			pthread_cond_wait(&cvar,&mut);
 		}
-
+		printf("Thread no %lu working\n", * (long unsigned int *) nr);
+		printf("CondVar = %d\n", new_request_flag);
 		new_request_flag = TAKEN_REQUEST;
 		open_requests();
 		pthread_mutex_unlock(&mut);

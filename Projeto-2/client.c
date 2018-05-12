@@ -97,7 +97,7 @@ void open_fifo_requests(){
 	}
 
 	printf("before post\n");
-	sem_post(new_client);
+
 	write(fifo_escrita,request, sizeof(Request));
 	/*else{
 		write (fifo_escrita,request, sizeof(Request));
