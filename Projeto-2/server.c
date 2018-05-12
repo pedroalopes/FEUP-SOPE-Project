@@ -11,12 +11,14 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <semaphore.h>
 
 #define MAX_SEATS 9999
 #define MAX_CLI_SEATS 5
 #define NEW_REQUEST 1
 #define TAKEN_REQUEST 0
-pthread_mutex_t new_client = PTHREAD_MUTEX_INITIALIZER;
+#define SHARED 0
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cvar = PTHREAD_COND_INITIALIZER;
 
 typedef struct {
@@ -43,6 +45,7 @@ int fifo_escrita;
 int fifo_leitura;
 int pid_ans;
 time_t start_t;
+sem_t *new_client;
 
 
 FILE *f;
@@ -61,37 +64,57 @@ Request* req;
 
 int main (int argc, char * argv[]) {
 
-
 	int i;
 	char toFile[40];
-
 	if (argc != 4){
 		printf("Wrong number of arguments! Usage: %s [num_room_seats] [num_ticket_offices] [open_time] \n", argv[0]);
-		exit(0);
+		exit(1);
+	}
+	else if (atoi(argv[2]) > 20){
+		printf("SERVER::Cant have that many ticket offices\n");
+		exit(1);
+	}
+	else if(atoi(argv[3]) == 0) {
+		printf("SERVER:: open_time must be a positive number\n");
+		exit(1);
 	}
 	f=fopen("slog.txt","ab+");
 
-	buf=malloc(sizeof(Request));
-	info=malloc(sizeof(Info));
+	printf("SERVER::CREATED SERVER\n");
 
+	info=malloc(sizeof(Info));
 	info->num_room_seats=atoi(argv[1]);
 	info->num_ticket_offices=atoi(argv[2]);
 	info->open_time=atoi(argv[3]);
 
 	start_t = time(0);
+	if((new_client = sem_open("/new_client", O_CREAT, 0777, 0)) == SEM_FAILED)
+		printf("ERROR::Could not create semaphore\n");
 
-	create_fifo_requests();
 	create_ticket_offices();
+	create_fifo_requests();
 
+	while(time(0) - start_t < info->open_time) {
+		if(new_request_flag == TAKEN_REQUEST) {
 
-	while(1) {
-		if(read(fifo_leitura, buf, sizeof(Request)) > 0) {
-			pthread_mutex_lock(&new_client);
-			new_request_flag = NEW_REQUEST;
-			pthread_cond_signal(&cvar);
-			pthread_mutex_unlock(&new_client);
+			sleep(1);
+			printf("before read\n");
+
+			sem_wait(new_client);
+
+			printf("after sem\n");
+
+			while ((fifo_leitura = open("requests", O_RDONLY)) == -1) {
+				printf("SERVER: Waiting for REQUESTS'...\n");
+			}
+
+			printf("after while\n");
+			if(read(fifo_leitura, buf, sizeof(Request)) > 0){
+				printf("inside request\n");
+				new_request_flag = NEW_REQUEST;
+				pthread_cond_signal(&cvar);
+			}
 		}
-
 	}
 
 	for (i = 0; i< info->num_ticket_offices;i++){
@@ -110,13 +133,16 @@ int main (int argc, char * argv[]) {
 	}
 
 	free(info);
+	free(req);
 	free(buf);
 	fclose(f);
 	pthread_cond_destroy(&cvar);
-	pthread_mutex_destroy(&new_client);
+	sem_close(new_client);
+	sem_unlink("new_client");
 	close(fifo_leitura);
-	remove("requests");
+	unlink("requests");
 	return 0;
+
 }
 
 void create_fifo_requests(){
@@ -129,7 +155,7 @@ void create_fifo_requests(){
 	}
 
 
-	while ((fifo_leitura = open("requests", O_RDONLY)) == -1) {
+	while ((fifo_leitura = open("requests", O_RDONLY | O_NONBLOCK)) == -1) {
 		printf("SERVER: Waiting for REQUESTS'...\n");
 	}
 	return;
@@ -138,8 +164,8 @@ void create_fifo_requests(){
 void open_requests(){
 
 	int i ;
-	char dir[30], aux[30], finally[30], toFile[40];
-	sprintf(dir, "ans%d",buf->id);
+	char dir[30], aux[30],finally[30],toFile[50];
+	Request *request = malloc(sizeof(Request));
 	strcpy(aux, buf->seats);
 	sprintf(toFile, "CL%d-%d:",buf->id,buf->num_seats);
 	strcat(toFile,buf->seats);
@@ -160,6 +186,7 @@ void open_requests(){
 		if (seat>9999 || seat<0){
 			i =-3;
 			sprintf(finally, "%d ",i);
+
 			write(fifo_escrita, finally,30);
 			strcat(toFile,"-IID");
 			fprintf(f,toFile);
@@ -221,7 +248,6 @@ void open_requests(){
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
-
 	fprintf(f, toFile);
 	printf("before answer\n");
 	sprintf(dir, "ans%d",buf->id);
@@ -233,16 +259,16 @@ void open_requests(){
 		printf("Could not send message\n");
 		return;
 	}
+	printf("after answer\n");
+
 }
 
 int send_answer(char* answer, char* dir) {
 
-	sleep(4);
 	if((fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK)) == -1)
 		return 1;
 
 	write(fifo_escrita, answer, 30);
-	printf("Answer nr %s handled with %s\n", dir, answer);
 	return 0;
 
 }
@@ -257,7 +283,7 @@ void create_ticket_offices(){
 		else
 			sprintf(toFile,"%d-OPEN",i);
 		fprintf(f,toFile);
-		pthread_create(&threads[i],NULL,check_buffer, *(long unsigned int *) &threads[i]);
+		pthread_create(&threads[i],NULL,check_buffer,"1");
 		printf("Created thread\n");
 	}
 
@@ -295,20 +321,17 @@ void freeSeat(Seat *seats, int seatNum){
 
 }
 
-void *check_buffer(void * nr){
+void *check_buffer(void *nr){
 
 	while(1){
-		pthread_mutex_lock(&new_client);
-
+		pthread_mutex_lock(&mut);
 		while (new_request_flag == TAKEN_REQUEST){
-			printf("wait:%lu\n", * (long unsigned int *) nr);
-			pthread_cond_wait(&cvar,&new_client);
+			pthread_cond_wait(&cvar,&mut);
 		}
-		printf("Thread no %lu working\n", * (long unsigned int *) nr);
-		printf("CondVar = %d\n", new_request_flag);
+		printf("in check buffer\n");
 		new_request_flag = TAKEN_REQUEST;
 		open_requests();
-		pthread_mutex_unlock(&new_client);
+		pthread_mutex_unlock(&mut);
 	}
 	pthread_exit(NULL);
 
