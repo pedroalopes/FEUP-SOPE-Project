@@ -74,8 +74,9 @@ int main (int argc, char * argv[]) {
 		printf("SERVER:: open_time must be a positive number\n");
 		exit(1);
  	}
-
- 	f=fopen("slog.txt","ab+");
+	printf("open\n");
+ 	f=fopen("slog.txt","w");
+ 	fprintf(f,"AAAAA");
 
 	buf=malloc(sizeof(Request));
 	info=malloc(sizeof(Info));
@@ -211,10 +212,11 @@ void open_requests(){
 	strcpy(success, finally);
 	split = strtok (aux," ");
 	count_seats=0;
-	while (split != NULL || count_seats<buf->num_seats)
+	while (split != NULL && count_seats<buf->num_seats)
 	{
 		seat=atoi(split);
 		seats[seat].isFree=1;
+		printf("%d\n",buf->num_seats);
 		sprintf(finally, "%d ",seat);
 		strcat(success, finally);
 		strcat (toFile, success);
