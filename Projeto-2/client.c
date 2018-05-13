@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 	request = malloc(sizeof(Request));
 
 	char dir[30];
-	sprintf(dir, "ans%d", getpid());
+
 
 	printf("** Running process %d (PGID %d) **\n", getpid(), getpgrp());
 
@@ -40,7 +40,11 @@ int main(int argc, char *argv[]) {
 		printf("USAGE: ./client [time_out] [nr_de_lugares] [lugares]\n");
 		exit(1);
 	}
-
+	FILE *f;
+	FILE *fp;
+	f=fopen("clog.txt","a+");
+	fp=fopen("cbook.txt","a+");
+	sprintf(dir, "ans%d", getpid());
 	request->id=getpid();
 	request->num_seats=atoi(argv[2]);
 	strcpy(request->seats,argv[3]);
@@ -52,13 +56,22 @@ int main(int argc, char *argv[]) {
 	create_fifo_ans(dir);
 
 	close(fifo_leitura);
+	fclose(f);
+	fclose(fp);
 	unlink(dir);
 	return 0;
 }
 void create_fifo_ans(char* dir)
 {
+	char toFile[50],aux[50],success[20];
+	FILE *f;
+	FILE *fp;
+	f = fopen("clog.txt","a+");
+	fp =fopen("cbook.txt","a+");
+	sprintf(toFile,"%d ",getpid());
 	time_t start_t;
 	start_t=time(0);
+	int i;
 	char answer[30] = "NULL";
 
 	if (mkfifo(dir, 0660) != 0) {
@@ -75,8 +88,45 @@ void create_fifo_ans(char* dir)
 
 	printf("before read\n");
 	read(fifo_leitura, answer, 30);
+	strcpy(aux,answer);
+	printf(":::%s\n", aux);
+	char * split = strtok (aux," ");
+	printf("SPLIT::%s\n", split);
+	int number = atoi(split);
+	if (number==-1){
+		strcat(toFile,"MAX\n");
+	}
+	if (number==-2){
+		strcat(toFile,"NST\n");
+	}
+	if (number==-3){
+		strcat(toFile,"IID\n");
+	}
+	if(number==-5){
+		strcat(toFile,"NAV\n");
+	}
+	if(number==-6){
+		strcat(toFile,"FUL\n");
+	}
+	if (number <0){
+		fprintf(f,toFile);
+	}
+	else{
+		for (i=1 ; i <=number;i++){
+			split= strtok (NULL, " ");
+			sprintf(toFile,"%d ",getpid());
+			fprintf(fp,split);
+			fprintf(fp,"\n");
+			int seat = atoi(split);
+			printf("%s\n",split);
+			sprintf(success, "0%d.0%d %d\n",i,number,seat);
+			strcat(toFile,success);
+			fprintf(f,toFile);
+		}
+	}
+	fclose(f);
+	fclose(fp);
 
-	printf("%s\n", answer);
 
 	/*while (read(fifo_leitura, success, sizeof(success)) == -1) {
 		if ((double)(time(0)-start_t)>=time_out){
