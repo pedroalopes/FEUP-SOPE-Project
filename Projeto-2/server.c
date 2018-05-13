@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#define DELAY(number) sleep(number);
 #define MAX_SEATS 9999
 #define MAX_CLI_SEATS 5
 #define NEW_REQUEST 1
@@ -38,24 +39,19 @@ typedef struct {
 } Seat;
 
 Info *info;
+Request * buf;
 pthread_t threads[20];
-int fifo_escrita;
-int fifo_leitura;
-int pid_ans;
+int fifo_escrita, fifo_leitura, pid_ans, open_tickets;
+int new_request_flag = TAKEN_REQUEST;
 time_t start_t;
 
-
-int new_request_flag = TAKEN_REQUEST;
-
 Seat seats[MAX_SEATS];
-Request * buf;
 
 void create_ticket_offices();
 void *check_buffer(void *nr);
 void create_fifo_requests();
 void open_requests();
 int send_answer(char* answer, char* dir);
-Request* req;
 
 int main (int argc, char * argv[]) {
 	FILE *f;
@@ -84,18 +80,19 @@ int main (int argc, char * argv[]) {
 	start_t = time(0);
 
 	create_fifo_requests();
+	open_tickets = 1;
 	create_ticket_offices();
 
 
-	while(1) {
+	while(time(0) - start_t < info->open_time) {
 		if(read(fifo_leitura, buf, sizeof(Request)) > 0) {
 			pthread_mutex_lock(&mut);
 			new_request_flag = NEW_REQUEST;
 			pthread_cond_signal(&cvar);
 			pthread_mutex_unlock(&mut);
 		}
-
 	}
+	open_tickets = 0;
 
 	int i;
 	for (i = 0; i< info->num_ticket_offices;i++){
@@ -168,9 +165,9 @@ void open_requests(){
 		if (seats[seat].isFree!=0){
 			i =-5;
 			sprintf(finally, "%d ",i);
-			send_answer(finally, dir);
 			strcat(toFile,"-NAV\n");
 			fprintf(f,toFile);
+			send_answer(finally, dir);
 			return;
 		}
 		count_seats++;
@@ -198,6 +195,7 @@ void open_requests(){
 		sprintf(finally, "%d ",i);
 		send_answer(finally, dir);
 		strcat(toFile,"-FUL\n");
+		printf("%s\n", toFile);
 		fprintf(f,toFile);
 		return;
 	}
@@ -216,14 +214,17 @@ void open_requests(){
 		seat=atoi(split);
 		seats[seat].isFree=1;
 		sprintf(finally, "%d ",seat);
-		strcpy(success, finally);
-		strcat (toFile, success);
+		strcat(success, finally);
+		sprintf(finally, "%d ",seat);
+		strcat (toFile, finally);
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
-
+	strcat(toFile, "\n");
 	fprintf(f, toFile);
 
+	DELAY(3);
+	
 	if(send_answer(success, dir) == 1){
 		printf("Could not send message\n");
 		return;
@@ -233,7 +234,6 @@ void open_requests(){
 
 int send_answer(char* answer, char* dir) {
 
-	sleep(4);
 	if((fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK)) == -1)
 		return 1;
 
@@ -295,7 +295,7 @@ void freeSeat(Seat *seats, int seatNum){
 
 void *check_buffer(void * nr){
 
-	while(1){
+	while(open_tickets == 1){
 		pthread_mutex_lock(&mut);
 
 		while (new_request_flag == TAKEN_REQUEST){
@@ -308,6 +308,7 @@ void *check_buffer(void * nr){
 		open_requests();
 		pthread_mutex_unlock(&mut);
 	}
+
 	pthread_exit(NULL);
 
 }
