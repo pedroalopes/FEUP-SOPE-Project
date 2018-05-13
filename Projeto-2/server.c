@@ -211,9 +211,10 @@ void open_requests(){
 	strcpy(success, finally);
 	split = strtok (aux," ");
 	count_seats=0;
-	while (split != NULL && count_seats<buf->num_seats)
+	while (split != NULL || count_seats<buf->num_seats)
 	{
 		seat=atoi(split);
+		seats[seat].isFree=1;
 		sprintf(finally, "%d ",seat);
 		strcat(success, finally);
 		strcat (toFile, success);
