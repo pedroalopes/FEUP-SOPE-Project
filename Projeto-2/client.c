@@ -8,6 +8,10 @@
 #include <string.h>
 #include <time.h>
 #include <semaphore.h>
+#define WIDTH_PID 5
+#define WIDTH_XXNN 5
+#define WIDTH_SEAT 4
+
 int fifo_leitura;
 int fifo_escrita;
 int time_out;
@@ -40,10 +44,6 @@ int main(int argc, char *argv[]) {
 		printf("USAGE: ./client [time_out] [nr_de_lugares] [lugares]\n");
 		exit(1);
 	}
-	FILE *f;
-	FILE *fp;
-	f=fopen("clog.txt","a+");
-	fp=fopen("cbook.txt","a+");
 	sprintf(dir, "ans%d", getpid());
 	request->id=getpid();
 	request->num_seats=atoi(argv[2]);
@@ -56,8 +56,6 @@ int main(int argc, char *argv[]) {
 	create_fifo_ans(dir);
 
 	close(fifo_leitura);
-	fclose(f);
-	fclose(fp);
 	unlink(dir);
 	return 0;
 }
@@ -68,7 +66,7 @@ void create_fifo_ans(char* dir)
 	FILE *fp;
 	f = fopen("clog.txt","a+");
 	fp =fopen("cbook.txt","a+");
-	sprintf(toFile,"%d ",getpid());
+	sprintf(toFile,"%05d ",getpid());
 	time_t start_t;
 	start_t=time(0);
 	int i;
@@ -114,12 +112,16 @@ void create_fifo_ans(char* dir)
 	else{
 		for (i=1 ; i <=number;i++){
 			split= strtok (NULL, " ");
-			sprintf(toFile,"%d ",getpid());
-			fprintf(fp,split);
-			fprintf(fp,"\n");
 			int seat = atoi(split);
+			sprintf(toFile,"%04d\n",seat);
+			fprintf(fp,toFile);
+			fprintf(fp,"\n");
+			sprintf(toFile,"%05d ",getpid());
+
+
+
 			printf("%s\n",split);
-			sprintf(success, "0%d.0%d %d\n",i,number,seat);
+			sprintf(success, "0%d.0%d %04d\n",i,number,seat);
 			strcat(toFile,success);
 			fprintf(f,toFile);
 		}

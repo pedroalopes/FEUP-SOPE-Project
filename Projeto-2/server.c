@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -227,7 +228,8 @@ void open_requests(){
 		seats[seat].isFree=1;
 		sprintf(finally, "%d ",seat);
 		strcat(success, finally);
-		strcat (toFile, success);
+		sprintf(finally,"%04d ",seat);
+		strcat (toFile, finally);
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
