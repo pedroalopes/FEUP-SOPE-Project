@@ -329,7 +329,7 @@ void *check_buffer(void * nr){
 
 			if(open_ticket_offices == 0){
 				pthread_mutex_unlock(&mut);
-				return;
+				pthread_exit(NULL);
 			}
 
 

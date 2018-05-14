@@ -18,7 +18,7 @@ int time_out;
 sem_t *new_client;
 
 typedef struct {
-	int id; //numero do pedido
+	int id; 
 	int num_seats;
 	char seats[10];
 
@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
 		printf("USAGE: ./client [time_out] [nr_de_lugares] [lugares]\n");
 		exit(1);
 	}
+
 	sprintf(dir, "ans%d", getpid());
 	request->id=getpid();
 	request->num_seats=atoi(argv[2]);
@@ -83,7 +84,7 @@ void create_fifo_ans(char* dir)
 	while((fifo_leitura = open(dir, O_RDONLY)) == -1) {
 		printf("Could not open FIFO\n");
 	}
-	
+
 	while(clock() - start_t < time_out) {
 		if(read(fifo_leitura, answer, 30) > 0) {
 			break;
@@ -100,7 +101,6 @@ void create_fifo_ans(char* dir)
 	strcpy(aux,answer);
 	printf(":::%s\n", aux);
 	char * split = strtok (aux," ");
-	printf("SPLIT::%s\n", split);
 	int number = atoi(split);
 	if (number==-1){
 		strcat(toFile,"MAX\n");
@@ -147,10 +147,5 @@ void open_fifo_requests(){
 		printf("CLIENT: ERROR WHEN FIFO REQUESTS WAS OPENED\n");
 	}
 
-	printf("before post\n");
-
 	write(fifo_escrita,request, sizeof(Request));
-	/*else{
-		write (fifo_escrita,request, sizeof(Request));
-	}*/
 }
