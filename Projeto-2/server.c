@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#define DELAY(msec) usleep(msec)
 #define MAX_SEATS 9999
 #define MAX_CLI_SEATS 5
 #define NEW_REQUEST 1
@@ -43,6 +44,7 @@ pthread_t threads[20];
 int fifo_escrita;
 int fifo_leitura;
 int pid_ans;
+int open_ticket_offices = 0;
 time_t start_t;
 
 
@@ -89,30 +91,37 @@ int main (int argc, char * argv[]) {
 	create_fifo_requests();
 	create_ticket_offices();
 
+	start_t = time(0);
 
-	while(1) {
+	while(time(0) - start_t < info->open_time) {
 		if(read(fifo_leitura, buf, sizeof(Request)) > 0) {
 			pthread_mutex_lock(&mut);
 			new_request_flag = NEW_REQUEST;
 			pthread_cond_signal(&cvar);
 			pthread_mutex_unlock(&mut);
 		}
-
 	}
+
+	open_ticket_offices = 0;
 
 	int i;
 	for (i = 0; i< info->num_ticket_offices;i++){
-		pthread_join(threads[i],NULL);
-	}
 
-	for (i = 0; i< info->num_ticket_offices;i++){
 		if (i<10){
 			sprintf(toFile, "0%d-CLOSE",i);
 		}
 		else
 			sprintf(toFile,"%d-CLOSE",i);
 		fprintf(f,toFile);
-		pthread_cancel(threads[i]);
+
+		pthread_mutex_lock(&mut);
+		pthread_cond_signal(&cvar);
+		pthread_mutex_unlock(&mut);
+	}
+
+
+	for (i = 0; i< info->num_ticket_offices;i++){
+		pthread_join(threads[i],NULL);
 	}
 
 	free(info);
@@ -237,6 +246,8 @@ void open_requests(){
 	strcat(toFile, "\n");
 	fprintf(f, toFile);
 
+	DELAY(50);
+
 	if(send_answer(success, dir) == 1){
 		printf("Could not send message\n");
 		return;
@@ -247,7 +258,6 @@ void open_requests(){
 
 int send_answer(char* answer, char* dir) {
 
-	sleep(4);
 	if((fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK)) == -1)
 		return 1;
 
@@ -261,6 +271,7 @@ void create_ticket_offices(){
 	FILE *f=fopen("slog.txt","a");
 	int i;
 	char toFile[20];
+	open_ticket_offices = 1;
 
 	for (i = 0; i< info->num_ticket_offices;i++){
 		if (i<10){
@@ -310,18 +321,23 @@ void freeSeat(Seat *seats, int seatNum){
 void *check_buffer(void * nr){
 
 	while(1){
-		pthread_mutex_lock(&mut);
+		pthread_mutex_trylock(&mut);
 
 		while (new_request_flag == TAKEN_REQUEST){
-			printf("wait:%lu\n", * (long unsigned int *) nr);
+			printf("thread %lu waiting for client...\n", * (long unsigned int *) nr);
 			pthread_cond_wait(&cvar,&mut);
+
+			if(open_ticket_offices == 0){
+				pthread_mutex_unlock(&mut);
+				return;
+			}
+
+
 		}
-		printf("Thread no %lu working\n", * (long unsigned int *) nr);
-		printf("CondVar = %d\n", new_request_flag);
+		printf("Thread no %lu working...\n", * (long unsigned int *) nr);
 		new_request_flag = TAKEN_REQUEST;
 		open_requests();
 		pthread_mutex_unlock(&mut);
 	}
-	pthread_exit(NULL);
 
 }
