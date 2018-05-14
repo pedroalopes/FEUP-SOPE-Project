@@ -67,8 +67,8 @@ void create_fifo_ans(char* dir)
 	f = fopen("clog.txt","a+");
 	fp =fopen("cbook.txt","a+");
 	sprintf(toFile,"%05d ",getpid());
-	time_t start_t;
-	start_t=time(0);
+	clock_t start_t;
+	start_t=clock();
 	int i;
 	char answer[30] = "NULL";
 
@@ -83,9 +83,20 @@ void create_fifo_ans(char* dir)
 	while((fifo_leitura = open(dir, O_RDONLY)) == -1) {
 		printf("Could not open FIFO\n");
 	}
+	
+	while(clock() - start_t < time_out) {
+		if(read(fifo_leitura, answer, 30) > 0) {
+			break;
+		}
+	}
 
-	printf("before read\n");
-	read(fifo_leitura, answer, 30);
+	if(strcmp(answer, "NULL") == 0){
+		printf("TIMEOUT\n");
+		fclose(f);
+		fclose(fp);
+		return;
+	}
+
 	strcpy(aux,answer);
 	printf(":::%s\n", aux);
 	char * split = strtok (aux," ");
@@ -128,18 +139,6 @@ void create_fifo_ans(char* dir)
 	}
 	fclose(f);
 	fclose(fp);
-
-
-	/*while (read(fifo_leitura, success, sizeof(success)) == -1) {
-		if ((double)(time(0)-start_t)>=time_out){
-			printf("END OF TIME\n");
-			return;
-		}
-		printf("CLIENT: Waiting for SERVER'...\n");
-	}
-
-	printf("%s\n", success);*/
-
 	return;
 }
 void open_fifo_requests(){
