@@ -15,7 +15,7 @@
 
 #define DELAY(msec) usleep(msec)
 #define MAX_SEATS 9999
-#define MAX_CLI_SEATS 5
+#define MAX_CLI_SEATS 99
 #define NEW_REQUEST 1
 #define TAKEN_REQUEST 0
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
@@ -30,7 +30,7 @@ typedef struct {
 typedef struct {
 	int id; //numero do pedido
 	int num_seats;
-	char seats[10];
+	char seats[200];
 
 } Request;
 
@@ -63,6 +63,8 @@ Request* req;
 int main (int argc, char * argv[]) {
 	FILE *f;
 	FILE *fp;
+	FILE *fc;
+	FILE *fcp;
 	char toFile[40];
 
 	if (argc != 4){
@@ -78,7 +80,12 @@ int main (int argc, char * argv[]) {
 		printf("SERVER:: open_time must be a positive number\n");
 		exit(1);
 	}
+	fc=fopen("clog.txt", "w");
+	fcp=fopen("cbook.txt", "w");
+	fclose(fc);
+	fclose(fcp);
 	f=fopen("slog.txt","w");
+	fclose(f);
 	fp=fopen("sbook.txt","w");
 	buf=malloc(sizeof(Request));
 	info=malloc(sizeof(Info));
@@ -103,15 +110,15 @@ int main (int argc, char * argv[]) {
 	}
 
 	open_ticket_offices = 0;
-
+	f = fopen("slog.txt", "a");
 	int i;
 	for (i = 0; i< info->num_ticket_offices;i++){
 
 		if (i<10){
-			sprintf(toFile, "0%d-CLOSE",i);
+			sprintf(toFile, "0%d-CLOSE\n",i);
 		}
 		else
-			sprintf(toFile,"%d-CLOSE",i);
+			sprintf(toFile,"%d-CLOSE\n",i);
 		fprintf(f,toFile);
 
 		pthread_mutex_lock(&mut);
@@ -128,6 +135,9 @@ int main (int argc, char * argv[]) {
 	free(buf);
 	fclose(f);
 	fclose(fp);
+	close(fifo_leitura);
+	unlink("requests");
+	remove("requests");
 	pthread_cond_destroy(&cvar);
 	pthread_mutex_destroy(&mut);
 	return 0;
@@ -167,7 +177,6 @@ void open_requests(){
 		fclose(f);
 		return;
 	}
-	printf(":::%s\n",toFile);
 	char * split = strtok (aux," ");
 	int count_seats =0;
 	int seat;
@@ -242,9 +251,6 @@ void open_requests(){
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
-	printf("%s\n",success);
-	strcat(toFile, "\n");
-	fprintf(f, toFile);
 
 	DELAY(50);
 
@@ -252,12 +258,13 @@ void open_requests(){
 		printf("Could not send message\n");
 		return;
 	}
+	strcat(toFile, "\n");
+	fprintf(f, toFile);
 	fclose(f);
 	fclose(fp);
 }
 
 int send_answer(char* answer, char* dir) {
-
 	if((fifo_escrita=open(dir, O_WRONLY | O_NONBLOCK)) == -1)
 		return 1;
 
@@ -331,7 +338,6 @@ void *check_buffer(void * nr){
 				pthread_mutex_unlock(&mut);
 				pthread_exit(NULL);
 			}
-
 
 		}
 		printf("Thread no %lu working...\n", * (long unsigned int *) nr);

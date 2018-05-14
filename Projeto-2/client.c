@@ -15,10 +15,9 @@
 int fifo_leitura;
 int fifo_escrita;
 int time_out;
-sem_t *new_client;
 
 typedef struct {
-	int id; 
+	int id;
 	int num_seats;
 	char seats[10];
 
@@ -35,7 +34,6 @@ int main(int argc, char *argv[]) {
 
 	char dir[30];
 
-
 	printf("** Running process %d (PGID %d) **\n", getpid(), getpgrp());
 
 	if (argc == 4)
@@ -51,13 +49,13 @@ int main(int argc, char *argv[]) {
 	strcpy(request->seats,argv[3]);
 
 	time_out = atoi(argv[1]);
-	new_client = sem_open("/new_client", O_CREAT);
 
 	open_fifo_requests();
 	create_fifo_ans(dir);
 
 	close(fifo_leitura);
 	unlink(dir);
+	remove(dir);
 	return 0;
 }
 void create_fifo_ans(char* dir)
@@ -97,9 +95,7 @@ void create_fifo_ans(char* dir)
 		fclose(fp);
 		return;
 	}
-
 	strcpy(aux,answer);
-	printf(":::%s\n", aux);
 	char * split = strtok (aux," ");
 	int number = atoi(split);
 	if (number==-1){
@@ -129,9 +125,6 @@ void create_fifo_ans(char* dir)
 			fprintf(fp,"\n");
 			sprintf(toFile,"%05d ",getpid());
 
-
-
-			printf("%s\n",split);
 			sprintf(success, "0%d.0%d %04d\n",i,number,seat);
 			strcat(toFile,success);
 			fprintf(f,toFile);
