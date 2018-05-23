@@ -119,7 +119,7 @@ int main (int argc, char * argv[]) {
 		}
 		else
 			sprintf(toFile,"%d-CLOSE\n",i);
-		fprintf(f,toFile);
+		fprintf(f,"%s",toFile);
 
 		pthread_mutex_lock(&mut);
 		pthread_cond_signal(&cvar);
@@ -171,7 +171,7 @@ void open_requests(){
 		i =-1;
 		strcpy(type,"MAX\n");
 		strcat(toFile,type);
-		fprintf(f,toFile);
+		fprintf(f,"%s",toFile);
 		sprintf(finally, "%d ",i);
 		send_answer(finally, dir);
 		fclose(f);
@@ -187,16 +187,16 @@ void open_requests(){
 			i =-3;
 			strcpy(type,"IID\n");
 			strcat(toFile,type);
-			fprintf(f,toFile);
+			fprintf(f,"%s",toFile);
 			sprintf(finally, "%d ",i);
 			send_answer(finally, dir);
 			fclose(f);
-			break;
+			return;
 		}
 		if (seats[seat].isFree!=0){
 			i =-5;
 			strcat(toFile,"NAV\n");
-			fprintf(f,toFile);
+			fprintf(f,"%s",toFile);
 			sprintf(finally, "%d ",i);
 			send_answer(finally, dir);
 			fclose(f);
@@ -208,7 +208,7 @@ void open_requests(){
 	if (count_seats>MAX_CLI_SEATS || count_seats < buf->num_seats){
 		i =-2;
 		strcat(toFile,"NST\n");
-		fprintf(f,toFile);
+		fprintf(f,"%s",toFile);
 		sprintf(finally, "%d ",i);
 		send_answer(finally, dir);
 		fclose(f);
@@ -228,7 +228,7 @@ void open_requests(){
 		sprintf(finally, "%d ",i);
 		send_answer(finally, dir);
 		strcat(toFile,"-FUL\n");
-		fprintf(f,toFile);
+		fprintf(f,"%s",toFile);
 		fclose(f);
 		return;
 	}
@@ -259,7 +259,7 @@ void open_requests(){
 		return;
 	}
 	strcat(toFile, "\n");
-	fprintf(f, toFile);
+	fprintf(f,"%s",toFile);
 	fclose(f);
 	fclose(fp);
 }
@@ -286,7 +286,7 @@ void create_ticket_offices(){
 		}
 		else
 			sprintf(toFile,"%d-OPEN\n",i);
-		fprintf(f,toFile);
+		fprintf(f,"%s",toFile);
 		pthread_create(&threads[i],NULL,check_buffer, (void *) &threads[i]);
 		printf("Created thread\n");
 	}

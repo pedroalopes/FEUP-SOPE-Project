@@ -114,20 +114,20 @@ void create_fifo_ans(char* dir)
 		strcat(toFile,"FUL\n");
 	}
 	if (number <0){
-		fprintf(f,toFile);
+		fprintf(f,"%s",toFile);
 	}
 	else{
 		for (i=1 ; i <=number;i++){
 			split= strtok (NULL, " ");
 			int seat = atoi(split);
 			sprintf(toFile,"%04d\n",seat);
-			fprintf(fp,toFile);
+			fprintf(fp,"%s",toFile);
 			fprintf(fp,"\n");
 			sprintf(toFile,"%05d ",getpid());
 
 			sprintf(success, "0%d.0%d %04d\n",i,number,seat);
 			strcat(toFile,success);
-			fprintf(f,toFile);
+			fprintf(f,"%s",toFile);
 		}
 	}
 	fclose(f);
