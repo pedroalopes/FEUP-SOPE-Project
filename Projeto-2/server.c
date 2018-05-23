@@ -13,11 +13,16 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-#define DELAY(msec) usleep(msec)
+#define DELAY() usleep(50)
 #define MAX_SEATS 9999
 #define MAX_CLI_SEATS 99
 #define NEW_REQUEST 1
 #define TAKEN_REQUEST 0
+
+#define QUOTE(str) __QUOTE(str)
+#define __QUOTE(str)  #str
+#define WIDTH_SEAT 4
+
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cvar = PTHREAD_COND_INITIALIZER;
 
@@ -58,6 +63,9 @@ void *check_buffer(void *nr);
 void create_fifo_requests();
 void open_requests();
 int send_answer(char* answer, char* dir);
+void bookSeat(Seat *seats, int seatNum, int clientId);
+int isSeatFree(Seat *seat, int seatNum);
+
 Request* req;
 
 int main (int argc, char * argv[]) {
@@ -112,13 +120,9 @@ int main (int argc, char * argv[]) {
 	open_ticket_offices = 0;
 	f = fopen("slog.txt", "a");
 	int i;
-	for (i = 0; i< info->num_ticket_offices;i++){
+	for (i = 1; i <= info->num_ticket_offices;i++){
 
-		if (i<10){
-			sprintf(toFile, "0%d-CLOSE\n",i);
-		}
-		else
-			sprintf(toFile,"%d-CLOSE\n",i);
+		sprintf(toFile,"%02d-CLOSE\n",i);
 		fprintf(f,"%s",toFile);
 
 		pthread_mutex_lock(&mut);
@@ -130,6 +134,8 @@ int main (int argc, char * argv[]) {
 	for (i = 0; i< info->num_ticket_offices;i++){
 		pthread_join(threads[i],NULL);
 	}
+
+	fprintf(f, "%s", "SERVER CLOSE\n");
 
 	free(info);
 	free(buf);
@@ -163,12 +169,14 @@ void open_requests(){
 	FILE *f=fopen("slog.txt","a");
 	FILE *fp=fopen("sbook.txt","a");
 	int i ;
-	char dir[30], aux[30],finally[30], toFile[30],type[20];
+	char dir[100], aux[10000],finally[10000], toFile[10000],type[20];
 	sprintf(dir, "ans%d",buf->id);
 	strcpy(aux, buf->seats);
-	sprintf(toFile,"%d-%d: %s -",buf->id,buf->num_seats,buf->seats);
+
+
 	if(buf->num_seats>MAX_CLI_SEATS){
 		i =-1;
+		sprintf(toFile,"%d-%d: %d %d ... -",buf->id,buf->num_seats, buf->seats[0], buf->seats[1]);
 		strcpy(type,"MAX\n");
 		strcat(toFile,type);
 		fprintf(f,"%s",toFile);
@@ -177,13 +185,18 @@ void open_requests(){
 		fclose(f);
 		return;
 	}
+
+	sprintf(toFile,"%d-%d: %s -",buf->id,buf->num_seats,buf->seats);
+
 	char * split = strtok (aux," ");
 	int count_seats =0;
-	int seat;
+	int seat, return_value;
+
 	while (split != NULL)
 	{
 		seat=atoi(split);
-		if (seat>9999 || seat<0){
+		return_value = isSeatFree(seats, seat);
+		if (return_value == -1){
 			i =-3;
 			strcpy(type,"IID\n");
 			strcat(toFile,type);
@@ -193,7 +206,7 @@ void open_requests(){
 			fclose(f);
 			return;
 		}
-		if (seats[seat].isFree!=0){
+		if (return_value == -2){
 			i =-5;
 			strcat(toFile,"NAV\n");
 			fprintf(f,"%s",toFile);
@@ -205,6 +218,7 @@ void open_requests(){
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
+
 	if (count_seats>MAX_CLI_SEATS || count_seats < buf->num_seats){
 		i =-2;
 		strcat(toFile,"NST\n");
@@ -241,18 +255,19 @@ void open_requests(){
 	while (split != NULL && count_seats<buf->num_seats)
 	{
 		seat=atoi(split);
-		fprintf(fp,split);
+		fprintf(fp,"%0"QUOTE(WIDTH_SEAT)"d",seat);
 		fprintf(fp,"\n");
-		seats[seat].isFree=1;
+		bookSeat(seats, seat, buf->id);
 		sprintf(finally, "%d ",seat);
 		strcat(success, finally);
 		sprintf(finally,"%04d ",seat);
+
 		strcat (toFile, finally);
 		count_seats++;
 		split= strtok (NULL, " ");
 	}
 
-	DELAY(50);
+	DELAY();
 
 	if(send_answer(success, dir) == 1){
 		printf("Could not send message\n");
@@ -280,16 +295,15 @@ void create_ticket_offices(){
 	char toFile[20];
 	open_ticket_offices = 1;
 
-	for (i = 0; i< info->num_ticket_offices;i++){
-		if (i<10){
-			sprintf(toFile, "0%d-OPEN\n",i);
-		}
-		else
-			sprintf(toFile,"%d-OPEN\n",i);
+	for (i = 1; i <= info->num_ticket_offices;i++){
+
+		sprintf(toFile,"%02d-OPEN\n",i);
 		fprintf(f,"%s",toFile);
 		pthread_create(&threads[i],NULL,check_buffer, (void *) &threads[i]);
 		printf("Created thread\n");
+
 	}
+
 	fclose(f);
 
 }
@@ -311,7 +325,6 @@ void bookSeat(Seat *seats, int seatNum, int clientId){
 		return;
 	}
 
-
 }
 void freeSeat(Seat *seats, int seatNum){
 	if (seatNum<0 || seatNum>MAX_SEATS)
@@ -328,7 +341,7 @@ void freeSeat(Seat *seats, int seatNum){
 void *check_buffer(void * nr){
 
 	while(1){
-		pthread_mutex_trylock(&mut);
+		pthread_mutex_lock(&mut);
 
 		while (new_request_flag == TAKEN_REQUEST){
 			printf("thread %lu waiting for client...\n", * (long unsigned int *) nr);

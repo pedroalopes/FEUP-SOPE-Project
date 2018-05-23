@@ -8,9 +8,12 @@
 #include <string.h>
 #include <time.h>
 #include <semaphore.h>
+#define QUOTE(str) __QUOTE(str)
+#define __QUOTE(str)  #str
+#define WIDTH_SEAT 4
 #define WIDTH_PID 5
 #define WIDTH_XXNN 5
-#define WIDTH_SEAT 4
+
 
 int fifo_leitura;
 int fifo_escrita;
@@ -19,7 +22,7 @@ int time_out;
 typedef struct {
 	int id;
 	int num_seats;
-	char seats[10];
+	char seats[200];
 
 } Request;
 
@@ -120,10 +123,9 @@ void create_fifo_ans(char* dir)
 		for (i=1 ; i <=number;i++){
 			split= strtok (NULL, " ");
 			int seat = atoi(split);
-			sprintf(toFile,"%04d\n",seat);
+			sprintf(toFile,"%0"QUOTE(WIDTH_SEAT)"d\n",seat);
 			fprintf(fp,"%s",toFile);
-			fprintf(fp,"\n");
-			sprintf(toFile,"%05d ",getpid());
+			sprintf(toFile,"%0"QUOTE(WIDTH_PID)"d ",getpid());
 
 			sprintf(success, "0%d.0%d %04d\n",i,number,seat);
 			strcat(toFile,success);
