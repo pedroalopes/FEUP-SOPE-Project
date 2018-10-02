@@ -1,3 +1,12 @@
+FEUP-SOPE-PROJECTS
+==============================================================================================================================
+
+  A big project, divided in 2 parts, developed for PROG curricular unit, simulating some functionalities of the grep command.
+
+* **Course:** Operative Systems (SOPE) 
+* **CourseLink:** https://sigarra.up.pt/feup/en/ucurr_geral.ficha_uc_view?pv_ocorrencia_id=419998
+* **Date:** 2nd Semestre, 2017/2018 Academic Year
+
 # PROJECT 1 - SIMGREP
 A parte de programação do trabalho consiste na escrita de uma versão (muito) simplificada do utilitário de
 Unix "grep" 1 que permite encontrar padrões de texto em ficheiros2, podendo também percorrer diretórios.
